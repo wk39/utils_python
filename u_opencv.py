@@ -71,7 +71,7 @@ def generate_grid_lines( xi, yi):#, A):
 
     pg = np.array(lines).T
     # dg = get_image_points(A,pg)
-    return pg#, dg
+    return pg.astype(np.float32)#, dg
 
 
 def xyz1_to_uv1(K,xyz1): #convert_world_to_image_points
@@ -82,7 +82,7 @@ def xyz1_to_uv1(K,xyz1): #convert_world_to_image_points
     return - 3xn vectors - ex one of columns has [u,v,1].T
     '''
     pp = np.matmul(K,xyz1)
-    return pp/pp[2]
+    return (pp/pp[2]).astype(np.float32)
 
 
 def uv1_to_xy01(Kmi,uv1):  # convert_image_to_world_in_ground_point
@@ -99,7 +99,7 @@ def uv1_to_xy01(Kmi,uv1):  # convert_image_to_world_in_ground_point
     S = np.array([[1,0,0],[0,1,0],[0,0,0],[0,0,1]])
     K = np.matmul( S, Kmi)
     pp = np.matmul(K,uv1)
-    return pp/pp[3]
+    return (pp/pp[3]).astype(np.float32)
 
 
 

@@ -2,24 +2,61 @@ import os
 import random
 import cv2
 
+class Obj:
+    def __init__(self):
+        self.bbox         = None
+        self.rect         = None
+        self.bbox_darknet = None
+        self.occluded     = None
+        self.name1        = ''
+        self.num1         = None
+        self.name2        = ''
+
 class Anno:
     def __init__(self):
-        self.corners    = None
-        self.rect       = None
-        self.dn_rect    = None
-        self.occluded   = None
-        self.name1      = ''
-        self.num1       = None
-        self.name2      = ''
+        self.fname      = ''
+        self.fname_full = ''
+        self.objects    = []
 
 class AnnoDb:
 
     def __init__(self):
         self.anno_dict = {}
         self.class_list = []
+        self.anno_list = []         # able to shuffle
+
+
+    def shuffle(self,seed=None):
+
+        print('suffling...', end='')
+        random.seed(seed)
+        random.shuffle(self.anno_list)
+        print('done.')
+
+    def get_max_objects(self):
+
+        n = 0
+        for an in self.anno_list:
+            if len(an.objects)>n:
+                n = len(an.objects)
+
+        return n
+
+    def get_image_size(self, index=0):
+
+        img = cv2.imread(self.anno_list[index].fname_full)
+        return img.shape
+
+    def get_size(self):
+        return len(self.anno_list)
+
+    def get_class_names(self):
+        return self.class_list
 
 
     def read_udacity_dataset(self, img_dir, label_file):
+
+        print('reading udacity annotations...', end='')
 
         W,H = None,None
 
@@ -28,7 +65,7 @@ class AnnoDb:
         # self.anno_dir  = os.path.abspath(os.path.join(self.root_dir,'labels'))
         self.anno_dir  = self.image_dir
 
-        label_file     = os.path.abspath(label_file)
+        label_file     = os.path.abspath(os.path.expanduser(label_file))
 
         with open(label_file) as f:
             lines = f.readlines()
@@ -39,7 +76,7 @@ class AnnoDb:
                 # print(sp)
 
                 if len(sp)==7:
-                    fname, sx1,sy1,sx2,sy2, soc, cls = sp
+                    img_name, sx1,sy1,sx2,sy2, soc, cls = sp
                     x1 = int(sx1)
                     y1 = int(sy1)
                     x2 = int(sx2)
@@ -50,7 +87,7 @@ class AnnoDb:
                     sub = ''
 
                 elif len(sp)==8:
-                    fname, sx1,sy1,sx2,sy2, soc, cls, sub = sp
+                    img_name, sx1,sy1,sx2,sy2, soc, cls, sub = sp
                     x1 = int(sx1)
                     y1 = int(sy1)
                     x2 = int(sx2)
@@ -70,30 +107,37 @@ class AnnoDb:
 
 
                 if W is None:
-                    img = cv2.imread(os.path.join(img_dir,fname))
+                    img = cv2.imread(os.path.join(self.image_dir,img_name))
                     H, W, D = img.shape
 
-                # init if new...
-                if fname not in self.anno_dict:
-                    self.anno_dict[fname] = []
+                # add new
+                if img_name not in self.anno_dict:
+                    an = Anno()
+                    an.fname = img_name
+                    an.fname_full = os.path.join(self.image_dir, img_name)
+                    #
+                    self.anno_dict[img_name] = an
 
-                # add if new class
+                # update class list
                 if cls not in self.class_list:
                     self.class_list.append(cls)
 
+                # add object
+                obj = Obj()
+                obj.bbox         = (x1,y1,x2,y2)
+                obj.rect         = (x1,y1,x2-x1,y2-y1)
+                obj.bbox_darknet = ((x1+x2)/2/W,(y1+y2)/2/H,(x2-x1)/W,(y2-y1)/H)
+                obj.occluded     = oc
+                obj.name1        = cls
+                obj.num1         = self.class_list.index(cls)
+                obj.name2        = sub
                 #
-                an = Anno()
-                an.corners    = (x1,y1,x2,y2)
-                an.rect       = (x1,y1,x2-x1,y2-y1)
-                an.dn_rect    = ((x1+x2)/2/W,(y1+y2)/2/H,(x2-x1)/W,(y2-y1)/H)
-                an.occluded   = oc
-                an.name1      = cls
-                an.num1       = self.class_list.index(cls)
-                an.name2      = sub
+                self.anno_dict[img_name].objects.append(obj)
 
-                # add 
-                self.anno_dict[fname].append(an)
+        # dictionary to list for shuffe
+        self.anno_list = list(self.anno_dict.values())
 
+        print('done. (', len(self.anno_list), 'annotations loaded.)')
 
     def write_darknet_txt(self):
 
@@ -101,13 +145,14 @@ class AnnoDb:
             os.mkdir(self.anno_dir)
 
         # labels
-        for fname, ans in self.anno_dict.items():
+        for fname, an in self.anno_dict.items():
             fname_full = os.path.join(self.anno_dir, fname.split('.')[0]+'.txt')
             with open(fname_full, 'wt') as f:
-                for an in ans:
-                    f.write('%d %f %f %f %f\n'%(an.num1, *an.dn_rect))
+                for obj in an.objects:
+                    f.write('%d %f %f %f %f\n'%(obj.num1, *obj.bbox_darknet))
             f.close()
-        # names
+
+        # class names
         with open(os.path.join(self.root_dir,'names.txt'), 'wt') as f:
             for cl in self.class_list:
                 f.write('%s\n'%(cl))
@@ -144,8 +189,8 @@ if __name__ == '__main__':
 
     adb = AnnoDb()
 
-    d = './object-dataset'
-    f = './object-dataset/label.csv'
+    d = '~/Data/udacity/object_detection/object-dataset'
+    f = '~/Data/udacity/object_detection/labels_corrected.csv'
 
     adb.read_udacity_dataset(d, f)
     print('Annotation DB is ready (%d objects)'%(len(adb.anno_dict)))

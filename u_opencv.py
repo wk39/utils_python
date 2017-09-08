@@ -1,9 +1,39 @@
 import numpy as np
 import cv2
 
+def label(img, text, pt, color_fg=(255,255,255), color_bg=(0,0,0),
+        font_face=cv2.FONT_HERSHEY_SIMPLEX, font_scale=0.6, thickness=1):
+    ''' put text label (text with box)
+    pt - bottom left point of label box
+
+    return None
+    '''
+
+    size, baseline = cv2.getTextSize(text, font_face, font_scale, thickness)
+    # print(size, baseline)
+
+    if color_bg:
+        cv2.rectangle(img, (pt[0], pt[1]-size[1]-baseline), (pt[0]+size[0],pt[1]) , color_bg, -1)
+
+    cv2.putText(img, text, (pt[0], pt[1]-baseline), font_face, font_scale, color_fg, thickness, cv2.LINE_AA)
+
+def rectangle(img, rect, color_fg, color_bg=None, thickness=1):
+    ''' draw rectangle using rect
+
+    return None
+    '''
+
+    p1, p2 = rect_to_points(rect)
+
+    if color_bg:
+        cv2.rectangle(img, p1, p2, color_bg, cv2.FILLED)
+
+    cv2.rectangle(img, p1, p2, color_fg, thickness)
+
+
 def lines_pair(img, pts, color, linewidth=1):            # draw_lines_pair
     ''' draw lines between pairs of points 
-    ex) for 2*n points input, draw n lines
+    (for 2*n points input, draw n lines)
 
     img - input image (numpy array)
     pts - image points numpy array sized 2+xN
@@ -104,4 +134,17 @@ def uv1_to_xy01(Kmi,uv1):  # convert_image_to_world_in_ground_point
 
 
 
+if __name__=='__main__':
+
+    import numpy as np
+    
+    img = np.ones((480,640,3), dtype=np.uint8)/2
+
+    ''' test label '''
+    label(img, 'label - AbcdefghijklmnopqrsTuvwxyz', (30,30))
+
+
+
+    cv2.imshow('Test',img)
+    cv2.waitKey(0)
 

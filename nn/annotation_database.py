@@ -139,6 +139,13 @@ class AnnoDb:
 
         print('done. (', len(self.anno_list), 'annotations loaded.)')
 
+    def write_class_text(self, fname='names.txt'):
+        # class names
+        with open(os.path.join(self.root_dir,fname), 'wt') as f:
+            for cl in self.class_list:
+                f.write('%s\n'%(cl))
+            f.close()
+
     def write_darknet_txt(self):
 
         if not os.path.exists(self.anno_dir):
@@ -153,10 +160,7 @@ class AnnoDb:
             f.close()
 
         # class names
-        with open(os.path.join(self.root_dir,'names.txt'), 'wt') as f:
-            for cl in self.class_list:
-                f.write('%s\n'%(cl))
-            f.close()
+        write_class_text()
 
 
         # train & valid list

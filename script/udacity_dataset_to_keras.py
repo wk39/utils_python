@@ -1,4 +1,4 @@
-from annotation_database import AnnoDb
+from nn.annotation_database import AnnoDb
 
 import h5py
 import numpy as np
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     nsplit       = int(args.split)
 
     print(args)
-    print(exception)
+    #print(exception)
 
     adb = AnnoDb()
 

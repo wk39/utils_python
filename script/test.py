@@ -7,6 +7,8 @@ import os
 
 import argparse
 
+import u_opencv as ucv
+
 argparser = argparse.ArgumentParser()
 
 argparser.add_argument(
@@ -51,7 +53,6 @@ if __name__ == '__main__':
     nsplit       = int(args.split)
 
     print(args)
-    #print(exception)
 
     adb = AnnoDb()
 
@@ -63,51 +64,39 @@ if __name__ == '__main__':
 
     adb.shuffle()   # IMPORTANT
 
-    # save h5 files
-    # SCALE = 0.5
+
     ntotal = adb.get_size()
-    npart  = ntotal//nsplit
+    npart  = 50
     H,W,D = adb.get_image_size()
     # NH, NW = int(H*SCALE), int(W*SCALE)
     NH, NW = 416,416
     for i in range(nsplit):
         print('loading image data & labels... %d/%d'%(i+1,nsplit))
-        images = np.zeros((npart,NH,NW,D), dtype=np.float32)
-        labels = np.zeros((npart,adb.get_max_objects(),5), dtype=np.float32)
-        ofs = i*npart
+        #images = np.zeros((npart,NH,NW,D), dtype=np.float32)
+        #labels = np.zeros((npart,adb.get_max_objects(),5), dtype=np.float32)
+        #ofs = i*npart
         for j in range(npart):
-            an = adb.anno_list[ofs+j]
-            images[j] = cv2.resize(
-                    cv2.cvtColor( cv2.imread(an.fname_full), cv2.COLOR_BGR2RGB),
-                    (NW,NH) ).astype(np.float32)/255.
+            an = adb.anno_list[j]
+            img = cv2.resize(
+                    cv2.imread(an.fname_full),
+                    (NW,NH) )
+
             for jj, obj in enumerate(an.objects):
-                labels[j][jj] = [
-                        obj.bbox_darknet[0],
-                        obj.bbox_darknet[1],
-                        obj.bbox_darknet[2],
-                        obj.bbox_darknet[3],
-                        obj.num1
-                        ]
-            if j%500==0:
-                print(' ... %d/%d - %d processed'%(i+1,nsplit,j))
+                # draw boxes
+                rcx, rcy, rw, rh = obj.bbox_darknet
+                x = int((rcx-rw/2)*NW)
+                y = int((rcy-rh/2)*NH)
+                w = int(rw*NW)
+                h = int(rh*NH)
+                ucv.rectangle(img, (x,y,w,h), (0,0,255))
+
+
+            ucv.label(img, an.fname, (0,NH) )
+
+            cv2.imwrite('%d.jpg'%(j),img)
+
         print(' done.')
         
-        print('saving %s file (%d/%d)...'%(filetype, i+1,nsplit))
-        if nsplit>1:
-            fname = dataset_name + '_%d.'%(i) + filetype
-        else:
-            fname = dataset_name + '.' + filetype
-
-        if filetype=='npz':
-            np.savez(os.path.join(adb.root_dir, fname),
-                images = images,
-                boxes = labels)
-        elif filetype=='h5':
-            f = h5py.File(os.path.join(adb.root_dir, fname),'w')
-            x = f.create_dataset('images', data=images)
-            y = f.create_dataset('boxes' , data=labels)
-            f.close()
-        print(' done.')
         
     # class names
     adb.write_class_text(dataset_name+'.txt')

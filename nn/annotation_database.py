@@ -134,6 +134,22 @@ class AnnoDb:
                 #
                 self.anno_dict[img_name].objects.append(obj)
 
+
+        # filtering car maked as truck at the same time
+        if True:
+            import u_rect as urc
+            for fname, an in self.anno_dict.items():
+                for obj in an.objects:
+                    if obj.name1=='truck':
+                        fobjs = []
+                        for o in an.objects:
+                            if o.name1=='car' and urc.iou_rect(obj.rect, o.rect)>0.7:
+                                print('filtering', fname, o.name1, o.rect, end=' ')
+                                print('with', obj.name1, obj.rect)
+                                fobjs.append(o)
+                        for o in fobjs:
+                            an.objects.remove(o)
+
         # dictionary to list for shuffe
         self.anno_list = list(self.anno_dict.values())
 

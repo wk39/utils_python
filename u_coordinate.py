@@ -149,6 +149,29 @@ def R2Q(R):
     return np.array([r,i,j,k])
 
 
+def R2RPY(R):
+
+    '''
+    ref: https://www.learnopencv.com/rotation-matrix-to-euler-angles/
+    '''
+ 
+    sy = np.sqrt(R[0,0] * R[0,0] +  R[1,0] * R[1,0])
+     
+    singular = sy < 1e-6
+ 
+    if  not singular :
+        x = np.arctan2(R[2,1] , R[2,2])
+        y = np.arctan2(-R[2,0], sy)
+        z = np.arctan2(R[1,0], R[0,0])
+    else :
+        x = np.arctan2(-R[1,2], R[1,1])
+        y = np.arctan2(-R[2,0], sy)
+        z = 0
+ 
+    return np.array([x, y, z])
+
+
+
 def SPH2XYZ(rng,rho,phi):
     ''' Spherical to XYZ '''
     return np.array([

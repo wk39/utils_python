@@ -150,8 +150,10 @@ def R2Q(R):
 
 
 def R2RPY(R):
+    ''' Roataion matrix to roll, pitch, yaw (X-Y-Z)
 
-    '''
+    return numpy array [r,p,y]
+
     ref: https://www.learnopencv.com/rotation-matrix-to-euler-angles/
     '''
  

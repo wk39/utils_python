@@ -173,6 +173,31 @@ def R2RPY(R):
     return np.array([x, y, z])
 
 
+def Q2ThetaV(q):
+    ''' extract angle, unit vector from quaternion (w,x,y,z)
+    return theta(rad), unit_vector
+    '''
+    theta_d2 = np.arccos(q[0])
+
+    v = q[1:]/np.sin(theta_d2)
+    unit_vector = v / np.linalg.norm(v)
+
+    return theta_d2*2, unit_vector
+
+def ThetaV2Q(theta,v):
+    ''' quaternion from angle and unit vector
+    return quaternion (w,x,y,z)
+    '''
+    q = np.zeros(4)
+
+    q[0] = np.cos(theta/2)
+    q[1] = np.sin(theta/2) * v[0]
+    q[2] = np.sin(theta/2) * v[1]
+    q[3] = np.sin(theta/2) * v[2]
+
+    return q
+
+
 
 def SPH2XYZ(rng,rho,phi):
     ''' Spherical to XYZ '''
@@ -230,5 +255,16 @@ if __name__=='__main__':
     # print(R1)
     # print(R1-Q2R(R2Q(R1)))
     assert np.all(np.abs(R1-Q2R(R2Q(R1)))<epsilon)
+
+
+    theta = np.radians(10)
+    unitv = np.array([1,0,0])
+    q = ThetaV2Q(theta, unitv)
+    t,u = Q2ThetaV(q)
+    # print(theta, t)
+    # print(unitv, u)
+    assert abs(theta-t)<epsilon
+    assert np.all(np.abs(unitv-u)<epsilon)
+
 
 

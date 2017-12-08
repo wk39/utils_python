@@ -2,7 +2,6 @@ import numpy as np
 
 # print(np.__version__)
 
-
 ''' Rotation Matrix (implementation)
 
  ref: https://en.wikipedia.org/wiki/Rotation_formalisms_in_three_dimensions
@@ -177,12 +176,15 @@ def Q2ThetaV(q):
     ''' extract angle, unit vector from quaternion (w,x,y,z)
     return theta(rad), unit_vector
     '''
-    theta_d2 = np.arccos(q[0])
+    if abs(q[0]-1.0) < 1e-8:
+        return 0, np.array([0.0,0.0,1.0])
+    else:
+        theta_d2 = np.arccos(q[0])
 
-    v = q[1:]/np.sin(theta_d2)
-    unit_vector = v / np.linalg.norm(v)
+        v = q[1:]/np.sin(theta_d2)
+        unit_vector = v / np.linalg.norm(v)
 
-    return theta_d2*2, unit_vector
+        return theta_d2*2, unit_vector
 
 def ThetaV2Q(theta,v):
     ''' quaternion from angle and unit vector
@@ -196,7 +198,6 @@ def ThetaV2Q(theta,v):
     q[3] = np.sin(theta/2) * v[2]
 
     return q
-
 
 
 def SPH2XYZ(rng,rho,phi):
@@ -232,6 +233,54 @@ def get_ground_range(rho, phi, T, ground_height=0.0):
 
 
 
+
+
+
+''' New Interfaces 
+    2017.12.08
+    TODO: add test funtions
+'''
+
+def RotationMatrixFromAxisAngle(axis, theta):
+    ''' return 3x3 Rotation Matrix'''
+    return Rxyz(theta, axis)
+
+def RotationMatrixFromEulerAngles(r,p,y):
+    ''' return 3x3 Rotation Matrix'''
+    return Rrpy(r,p,y)
+
+def RotationMatrixFromQuaternion(q):
+    ''' return 3x3 Rotation Matrix'''
+    return Q2R(q)
+
+
+def QuaternionFromRotationMatrix(R):
+    ''' return [w,x,y,z] '''
+    return R2Q(R)
+
+def QuaternionFromAxisAngle(v, theta):
+    ''' return [w,x,y,z] '''
+    return ThetaV2Q(theta, v)
+
+
+def AxisAngleFromQuaternion(q):
+    ''' return unit_vector, theta'''
+    t,u = Q2ThetaV(q)
+    return u,t
+
+def EulerAnglesFromRotationMatrix(R):
+    ''' return roll, pitch, yaw in radians'''
+    return R2RPY(R)
+
+
+def TransformationMatrix(r,p,y, tx,ty,tz):
+    ''' return 4x4 Transformation Matrix'''
+    return T(r,p,y, tx,ty,tz)
+
+
+
+
+
 if __name__=='__main__':
 
     ### TODO add unit test
@@ -261,6 +310,36 @@ if __name__=='__main__':
     unitv = np.array([1,0,0])
     q = ThetaV2Q(theta, unitv)
     t,u = Q2ThetaV(q)
+    # print(theta, t)
+    # print(unitv, u)
+    assert abs(theta-t)<epsilon
+    assert np.all(np.abs(unitv-u)<epsilon)
+
+
+    ''' New Interfaces '''
+    R1 = RotationMatrixFromAxisAngle('x', np.pi/2)
+    R2 = np.array([[ 1,0,0], [0,0,-1], [0,1,0]], dtype=np.float)
+    assert np.all(np.abs(R1-R2)<epsilon)
+
+    R1 = RotationMatrixFromAxisAngle('y', np.pi/2)
+    R2 = np.array([[ 0,0,1], [0,1,0], [-1,0,0]], dtype=np.float)
+    assert np.all(np.abs(R1-R2)<epsilon)
+
+    R1 = RotationMatrixFromAxisAngle('z', np.pi/2)
+    R2 = np.array([[ 0,-1,0], [1,0,0], [0,0,1]], dtype=np.float)
+    assert np.all(np.abs(R1-R2)<epsilon)
+
+
+    R1 = RotationMatrixFromAxisAngle('x', np.pi/2)
+    # print(R1)
+    # print(R1-Q2R(R2Q(R1)))
+    assert np.all(np.abs(R1-Q2R(R2Q(R1)))<epsilon)
+
+
+    theta = np.radians(10)
+    unitv = np.array([1,0,0])
+    q = QuaternionFromAxisAngle(unitv, theta)
+    u,t = AxisAngleFromQuaternion(q)
     # print(theta, t)
     # print(unitv, u)
     assert abs(theta-t)<epsilon

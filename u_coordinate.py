@@ -19,6 +19,8 @@ import numpy as np
     Intrinsic : Rinv Tinv
         xyz_body = Rinv Tinv * xyz_world
   
+
+ ref: http://danceswithcode.net/engineeringnotes/rotations_in_3d/rotations_in_3d_part1.html
   
 '''
 

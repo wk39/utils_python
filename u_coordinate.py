@@ -63,7 +63,26 @@ def Rxyz(theta, axis):
 def Rrpy(r,p,y):
 
     ''' Rotation matrix for Euler angle (intrinsic)
-    x_world = Rrpy * r_body
+    v_world = Rrpy * v_body
+
+
+    explain 1) rotaion of axes
+       -> first, rotate axis z with amount of yaw
+        v1 = Rz(yaw).T * v_world
+       -> next, rotate axis y with amount of pitch
+        v2 = Ry(pitch).T * v_world
+       -> last, rotate axis x with amount of roll
+        v_body = Rx(roll).T * v_world
+
+       => v_body = Rx(roll).T * Ry(pitch).T * Rz(yaw).T * v_world
+
+
+    explain 2) rotaion of points
+
+       inverse of explain 1
+
+       => v_world = Rz(yaw) * Ry(pitch) * Rx(roll) * v_body
+
     '''
 
     return np.dot( Rxyz(y, 'z'), np.dot( Rxyz(p, 'y'), Rxyz(r, 'x') ) )

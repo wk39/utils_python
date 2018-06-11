@@ -61,7 +61,7 @@ class KalmanFilter:
 
 
 
-def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False):
+def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False, b_graph=True, random_seed=None):
 
     """
     Robust B-Spline regression with scikit-learn
@@ -148,15 +148,25 @@ def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False):
     ##              ('Theil-Sen', 'm-', 'C1', TheilSenRegressor(random_state=42)),
     ##              ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=42)),
     ##              ('HuberRegressor', 'c-', 'C3', HuberRegressor())]
-    estimators = [('Least-Square', 'g-', 'C0', LinearRegression(fit_intercept=False)),
-                  # ('RANSAC', 'r-', 'C2', RANSACRegressor(residual_threshold=10))
-                  ('RANSAC', 'r-', 'C2', RANSACRegressor())
-                  ]
+    if random_seed:
+        estimators = [#('Least-Square', 'g-', 'C0', LinearRegression(fit_intercept=False)),
+                      # ('RANSAC', 'r-', 'C2', RANSACRegressor(residual_threshold=10))
+                      # ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=42))
+                      ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=random_seed))
+                      ]
+    else:
+        estimators = [#('Least-Square', 'g-', 'C0', LinearRegression(fit_intercept=False)),
+                      # ('RANSAC', 'r-', 'C2', RANSACRegressor(residual_threshold=10))
+                      # ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=42))
+                      ('RANSAC', 'r-', 'C2', RANSACRegressor())
+                      ]
 
     # fig, ax = plt.subplots(1, 1, figsize=(8, 3))
-    fig, ax = plt.subplots(1, 1)
-    fig.suptitle('Robust B-Spline Regression with SKLearn')
-    ax.plot(X[:, 0], y_errors_large, 'bs')
+    # print('b_graph', b_graph)
+    if b_graph:
+        fig, ax = plt.subplots(1, 1)
+        fig.suptitle('Robust B-Spline Regression with SKLearn')
+        ax.plot(X[:, 0], y_errors_large, 'bs', label='scattered data')
     
     for label, style, color, estimator in estimators:
         model = make_pipeline(bspline_features, estimator)
@@ -165,9 +175,11 @@ def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False):
         y_predicted = model.predict(x_predict[:, None])
         # ax.plot(x_predict, y_predicted, style, lw=2, markevery=8, ms=6,
                 # color=color, label=label + ' E={:2.2g}'.format(mse))
-        ax.plot(x_predict, y_predicted, style, lw=2, label=label)
-    ax.legend()
-    ax.grid()
+        if b_graph:
+            ax.plot(x_predict, y_predicted, style, lw=2, label=label)
+    if b_graph:
+        ax.legend()
+        ax.grid()
     # ax.set(ylim=(-2, 8), xlabel='x_data [s]', ylabel='amplitude')
     # plt.show()
 

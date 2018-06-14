@@ -194,7 +194,7 @@ def AxisAngleFromQuaternion(q):
 
     '''
     if abs(q[0]-1.0) < 1e-8:
-        unit_vector = np.array([0.0,0.0,1.0])
+        unit_vector = np.array([1.0,0.0,0.0])
         theta       = 0.0
     else:
         theta_d2 = np.arccos(q[0])
@@ -270,9 +270,48 @@ def TransformationMatrix(r,p,y, tx,ty,tz):
 
 
 
+def SphericalLinearInterpolation(q0, q1, t):
+
+    '''
+    spherical linear interpolation
+    parameter:
+
+        q0 [ w, x, y, z] - intial rotation in quaternion 
+        q1 [ w, x, y, z] - final rotation in quaternion 
+        t  [ float, 0<=t<=1] - amount of interpolation
+
+    return:
+        qi [ w, x, y, z] - interpolated quaternion
 
 
+    ref: https://en.wikipedia.org/wiki/Slerp
+    '''
 
+    # normalize
+    v0 = np.array(q0)/np.linalg.norm(q0)
+    v1 = np.array(q1)/np.linalg.norm(q1)
+
+    # amount of rotation
+    dot = np.dot(v0, v1)
+    if dot < 0:
+        v1 = -v1
+        dot = -dot
+
+    if dot > 0.9995:
+        qi = v0 + t*(v1 - v0)        # linear interpolation
+
+    else:
+        theta = np.arccos(dot)
+        theta_i = theta*t
+        sin_theta = np.sin(theta)
+        sin_theta_i = np.sin(theta_i)
+
+        s0 = np.cos(theta_i) - dot * sin_theta_i / sin_theta
+        s1 = sin_theta_i / sin_theta
+        
+        qi = s0*v0 + s1*v1
+
+    return qi/np.linalg.norm(qi)
 
 
 
@@ -594,4 +633,20 @@ if __name__=='__main__':
 
     # TransformationMatrix(r,p,y, tx,ty,tz):
     # TODO
+
+
+    # SphericalLinearInterpolation (SLERP)
+    u = [1,0,0]
+    thu = 10*np.pi/180
+    N = 8
+    vv = [0,1,0]
+    for i in range(N):
+        qr = QuaternionFromAxisAngle(u, thu*i)
+        q0 = QuaternionFromAxisAngle(u, thu*N)
+        qs = SphericalLinearInterpolation([1,0,0,0], q0, i/N)
+            
+        assert np.all(np.abs(
+            np.dot(RotationMatrixFromQuaternion(qr), vv)
+            -np.dot(RotationMatrixFromQuaternion(qs), vv))<epsilon)
+
 

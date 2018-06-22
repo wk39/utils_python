@@ -61,7 +61,7 @@ class KalmanFilter:
 
 
 
-def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False, b_graph=True, random_seed=None):
+def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False, b_graph=True, random_seed=None, title='ransac'):
 
     """
     Robust B-Spline regression with scikit-learn
@@ -165,7 +165,8 @@ def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False, b_graph=True, ra
     # print('b_graph', b_graph)
     if b_graph:
         fig, ax = plt.subplots(1, 1)
-        fig.suptitle('Robust B-Spline Regression with SKLearn')
+        # fig.suptitle('Robust B-Spline Regression with SKLearn')
+        fig.suptitle(title)
         ax.plot(X[:, 0], y_errors_large, 'bs', label='scattered data')
     
     for label, style, color, estimator in estimators:

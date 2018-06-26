@@ -61,7 +61,7 @@ class KalmanFilter:
 
 
 
-def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False, b_graph=True, random_seed=None, title='ransac'):
+def ransac_spline(x_data, y_data, n_order=3, n_knots=10, b_periodic=False, b_graph=True, random_seed=None, title='ransac'):
 
     """
     Robust B-Spline regression with scikit-learn
@@ -142,7 +142,7 @@ def ransac_spline(x_data, y_data, n_knots=10, b_periodic=False, b_graph=True, ra
     # predict y
     knots = np.linspace(x_data[0], x_data[-1], n_knots) #np.linspace(-30, 30, 20)
     # bspline_features = BSplineFeatures(knots, degree=3, periodic=False)
-    bspline_features = BSplineFeatures(knots, degree=3, periodic=b_periodic)
+    bspline_features = BSplineFeatures(knots, degree=n_order, periodic=b_periodic)
     ##estimators = [('Least-Square', 'g-', 'C0',
     ##               LinearRegression(fit_intercept=False)),
     ##              ('Theil-Sen', 'm-', 'C1', TheilSenRegressor(random_state=42)),

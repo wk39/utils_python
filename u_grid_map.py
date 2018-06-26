@@ -97,9 +97,9 @@ class GridMap:
         yn = np.interp(t, s, ps[:,1])
 
         ires = int(radius/res_min+0.5)
-        print('x', xn)
-        print('y', yn)
-        print(ires)
+        # print('x', xn)
+        # print('y', yn)
+        # print(ires)
 
         idx_list = []
         for x,y in zip(xn,yn):

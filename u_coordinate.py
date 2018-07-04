@@ -259,13 +259,60 @@ def TransformationMatrix(r,p,y, tx,ty,tz):
 
 
     '''
-    T = np.zeros((4,4))
+    T = np.eye(4)
     T[0,3] = tx
     T[1,3] = ty
     T[2,3] = tz
-    T[3,3] = 1.0
     T[0:3,0:3] = RotationMatrixFromEulerAngles(r,p,y)
 
+    return T
+
+
+def TransformationMatrixFromRotationMatrixTranslation(R,t):
+    ''' 
+    parameter:
+
+        R [ numpy array 3x3 ] - rotation matrix
+        t [ numpy array 3   ] - translation vector
+
+    return:
+
+        T [ numpy array 4x4 ] - transformation matrix
+
+            [ R11 R12 R13   tx]
+            [ R21 R22 R23   ty]
+            [ R31 R32 R33   tz]
+            [   0   0   0   1 ]
+
+
+    '''
+    T = np.eye(4)
+    T[:3,:3] = R
+    T[:3,3] = t
+
+    return T
+
+
+def TransformationMatrixFromEulerAngleTranslation(rpy, tsl):
+    ''' 
+    parameter:
+        rpy [ numpy array 3] - roll, pitch, yaw
+        tsl [ numpy array 3] - translation x, y, z
+
+    return:
+
+        T [ numpy array 4x4 ] - transformation matrix
+
+            [ R11 R12 R13   tx]
+            [ R21 R22 R23   ty]
+            [ R31 R32 R33   tz]
+            [   0   0   0   1 ]
+
+
+    '''
+    T = np.eye(4)
+    T[:3,:3] = RotationMatrixFromEulerAngles(*rpy)
+    T[:3, 3] = tsl
     return T
 
 
@@ -413,11 +460,10 @@ def T(r,p,y, tx,ty,tz):
     xyz_world = T * xyz_body
     '''
 
-    T = np.zeros((4,4))
+    T = np.eye(4)
     T[0,3] = tx
     T[1,3] = ty
     T[2,3] = tz
-    T[3,3] = 1.0
     T[0:3,0:3] = Rrpy(r,p,y)
     return T
 
@@ -551,8 +597,11 @@ def get_ground_range(rho, phi, T, ground_height=0.0):
 
 
 
-
-
+def param_form_string_from_transformation_matrix(T):
+    eu = EulerAnglesFromRotationMatrix(T[:3,:3])
+    s1 = ' -o %.6f %.6f %.6f' % (eu[0], eu[1], eu[2])
+    s2 = ' -p %.6f %.6f %.6f' % (T[0,3], T[1,3], T[2,3])
+    return s1 + s2
 
 
 
@@ -632,7 +681,17 @@ if __name__=='__main__':
 
 
     # TransformationMatrix(r,p,y, tx,ty,tz):
-    # TODO
+    rpy = [0.1, 0.2, 0.3]
+    tsl = [0.5, 0.6, 0.7]
+    R = RotationMatrixFromEulerAngles(*rpy)
+    p   = np.array([1,1,1,1])
+    p1  = np.dot(R,p[:3])+tsl
+    p2  = np.dot(TransformationMatrixFromEulerAngleTranslation(rpy,tsl), p)[:3]
+    assert np.all(np.abs(p1-p2)<epsilon)
+    p3  = np.dot(TransformationMatrix(rpy[0],rpy[1],rpy[2],tsl[0],tsl[1],tsl[2]), p)[:3]
+    assert np.all(np.abs(p1-p3)<epsilon)
+    p4  = np.dot(TransformationMatrixFromRotationMatrixTranslation(R,tsl), p)[:3]
+    assert np.all(np.abs(p1-p4)<epsilon)
 
 
     # SphericalLinearInterpolation (SLERP)

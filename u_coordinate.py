@@ -316,6 +316,25 @@ def TransformationMatrixFromEulerAngleTranslation(rpy, tsl):
     return T
 
 
+def EulerAngleTranslationFromTransformationMatrix(T):
+    ''' 
+    parameter:
+
+        T [ numpy array 4x4 ] - transformation matrix
+
+            [ R11 R12 R13   tx]
+            [ R21 R22 R23   ty]
+            [ R31 R32 R33   tz]
+            [   0   0   0   1 ]
+
+    return:
+
+        rpy [ numpy array 3] - roll, pitch, yaw
+        tsl [ numpy array 3] - translation x, y, z
+
+    '''
+    return EulerAnglesFromRotationMatrix(T[:3,:3]), T[:3,3]
+
 
 def SphericalLinearInterpolation(q0, q1, t):
 

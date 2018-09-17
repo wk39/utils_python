@@ -65,7 +65,7 @@ def cubic_bezier_in_matrix_form(ptc, ts):
 def cubic_bspline(ptc, ts):
 
     '''
-    pt - n x dim
+    pt - 4 x dim
     ts - 1d - [0 ... 1]
     '''
 
@@ -85,7 +85,7 @@ def cubic_bspline(ptc, ts):
 def cubic_bsplines(ptc, ts):
 
     '''
-    pt - 4 x dim
+    pt - n x dim
     ts - 1d - [0 ... 1]
     '''
 

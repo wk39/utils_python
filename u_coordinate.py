@@ -624,6 +624,241 @@ def param_form_string_from_transformation_matrix(T):
 
 
 
+
+
+
+def bursa_wolf_transformation(pa, pb, b_scale=True):
+    '''
+    Transformation A->B
+
+    input :
+        pa      - numpy array
+        pb      - numpy array
+        b_scale - boolean
+
+    return: 
+        rpy, tsl, ds, residuals, rank, singular_values
+
+
+    ref: 
+        https://www.researchgate.net/publication/228757515_A_NOTE_ON_THE_BURSA-WOLF_AND_MOLODENSKY-BADEKAS_TRANSFORMATIONS
+    '''
+
+    assert len(pa) == len(pb)
+
+    n = len(pa)
+
+    ##
+    ##    0 1 2     3   4   5    6
+    ##  ------------------------------------------------------------------------
+    ##  [ 1 0 0 |   0  z1 -y1 | x1 ]  [tx ty tz | ex ey ez | ds].T = [ x2 -x1 ]
+    ##  [ 0 1 0 | -z1   0  x1 | y1 ]                                 [ y2 -y1 ]
+    ##  [ 0 0 1 |  y1 -x1   0 | z1 ]                                 [ z2 -z1 ]
+    ##
+
+    if b_scale:
+        k = 7
+    else:
+        k = 6
+
+    A = np.zeros((3*n, k))
+    #
+    A[0::3,0] = 1.0
+    A[1::3,1] = 1.0
+    A[2::3,2] = 1.0
+    #
+    A[0::3,4] =  pa[:,2] #  z
+    A[0::3,5] = -pa[:,1] # -y
+    #
+    A[1::3,3] = -pa[:,2] # -z
+    A[1::3,5] =  pa[:,0] #  x
+    #
+    A[2::3,3] =  pa[:,1] #  y
+    A[2::3,4] = -pa[:,0] # -x
+    #
+    if b_scale:
+        A[0::3,6] =  pa[:,0] #  x
+        A[1::3,6] =  pa[:,1] #  y
+        A[2::3,6] =  pa[:,2] #  z
+    else:
+        pass
+
+    if b_scale:
+        B = (pb-pa).flatten()
+    else:
+        B = pb.flatten()
+
+    x, residual, rank, sv = np.linalg.lstsq(A,B)
+
+    translation = x[:3]
+    euler = np.arcsin(x[3:6])
+    if b_scale:
+        ds = x[6]
+    else:
+        ds = 1.0
+
+    return euler, translation, ds, residual, rank, sv
+
+
+
+
+def open3d_icp(pa, pb, trans_init=np.eye(4), max_distance=0.02, b_graph=False):
+    '''
+    (Transformation A->B)
+
+    pa : numpy array
+    pb : numpy array
+
+    return: 
+        transformation
+            - 4x4 numpy array
+        result
+            - transformation
+            - fitness
+            - inlier_rmse
+            - correspondence_set
+    '''
+
+    import open3d as op3
+    import copy
+
+    def draw_registration_result(source, target, transformation):
+        source_temp = copy.deepcopy(source)
+        target_temp = copy.deepcopy(target)
+        source_temp.paint_uniform_color([1, 0.706, 0])
+        target_temp.paint_uniform_color([0, 0.651, 0.929])
+        source_temp.transform(transformation)
+        op3.draw_geometries([source_temp, target_temp])
+
+
+    pc1 = op3.PointCloud()
+    pc1.points = op3.Vector3dVector(pa)
+
+    pc2 = op3.PointCloud()
+    pc2.points = op3.Vector3dVector(pb)
+
+
+    # op3.draw_geometries([pc1, pc2])
+
+    # max_distance = 0.2
+    # trans_init = np.asarray(
+                # [[0.862, 0.011, -0.507,  0.5],
+                # [-0.139, 0.967, -0.215,  0.7],
+                # [0.487, 0.255,  0.835, -1.4],
+                # [0.0, 0.0, 0.0, 1.0]])
+    # trans_init = np.eye(4)
+    # tsl = pb.mean(axis=0) - pa.mean(axis=0) 
+    # trans_init = TransformationMatrixFromEulerAngleTranslation(euler, tsl)
+    # trans_init = transform
+
+    # print("Apply point-to-point ICP")
+    reg_p2p = op3.registration_icp(pc1, pc2, max_distance, trans_init,
+            # op3.TransformationEstimationPointToPoint())
+            op3.TransformationEstimationPointToPoint(),
+            op3.ICPConvergenceCriteria(max_iteration = 2000))
+    # print(reg_p2p)
+    # print("Transformation is:")
+    # print(reg_p2p.transformation)
+    # print(EulerAngleTranslationFromTransformationMatrix(reg_p2p.transformation))
+    # print("")
+    if b_graph:
+        draw_registration_result(pc1, pc2, reg_p2p.transformation)
+
+    # print(reg_p2p.transformation)
+    # print(reg_p2p.fitness)
+    # print(reg_p2p.inlier_rmse)
+    # print(reg_p2p.correspondence_set)
+
+    return reg_p2p.transformation, reg_p2p
+
+
+def open3d_icp_normal(pa, pb, trans_init=np.eye(4), max_distance=0.02, b_graph=False):
+    '''
+    (Transformation A->B)
+
+    pa : numpy array
+    pb : numpy array
+
+    return: 
+        transformation
+            - 4x4 numpy array
+        result
+            - transformation
+            - fitness
+            - inlier_rmse
+            - correspondence_set
+    '''
+
+    import open3d as op3
+    import copy
+
+    def draw_registration_result(source, target, transformation):
+        source_temp = copy.deepcopy(source)
+        target_temp = copy.deepcopy(target)
+        source_temp.paint_uniform_color([1, 0.706, 0])
+        target_temp.paint_uniform_color([0, 0.651, 0.929])
+        source_temp.transform(transformation)
+        op3.draw_geometries([source_temp, target_temp])
+
+
+    pc1 = op3.PointCloud()
+    pc1.points = op3.Vector3dVector(pa)
+
+    pc2 = op3.PointCloud()
+    pc2.points = op3.Vector3dVector(pb)
+
+    op3.estimate_normals(pc1,
+            search_param = op3.KDTreeSearchParamHybrid(radius = 10.0, max_nn = 30))
+    op3.estimate_normals(pc2,
+            search_param = op3.KDTreeSearchParamHybrid(radius = 10.0, max_nn = 30))
+
+    # op3.draw_geometries([pc1, pc2])
+
+    # max_distance = 0.2
+    # trans_init = np.asarray(
+                # [[0.862, 0.011, -0.507,  0.5],
+                # [-0.139, 0.967, -0.215,  0.7],
+                # [0.487, 0.255,  0.835, -1.4],
+                # [0.0, 0.0, 0.0, 1.0]])
+    # trans_init = np.eye(4)
+    # tsl = pb.mean(axis=0) - pa.mean(axis=0) 
+    # trans_init = TransformationMatrixFromEulerAngleTranslation(euler, tsl)
+    # trans_init = transform
+
+    #### # print("Apply point-to-point ICP")
+    #### reg_p2p = op3.registration_icp(pc1, pc2, max_distance, trans_init,
+    ####         # op3.TransformationEstimationPointToPoint())
+    ####         op3.TransformationEstimationPointToPoint(),
+    ####         op3.ICPConvergenceCriteria(max_iteration = 2000))
+    #### # print(reg_p2p)
+    #### # print("Transformation is:")
+    #### # print(reg_p2p.transformation)
+    #### # print(EulerAngleTranslationFromTransformationMatrix(reg_p2p.transformation))
+    #### # print("")
+
+    # print("Apply point-to-plane ICP")
+    reg_p2l = op3.registration_icp(pc1, pc2, max_distance, trans_init,
+            op3.TransformationEstimationPointToPlane(),
+            op3.ICPConvergenceCriteria(max_iteration = 2000))
+    # print(reg_p2l)
+    # print("Transformation is:")
+    # print(reg_p2l.transformation)
+    # print("")
+
+
+    if b_graph:
+        draw_registration_result(pc1, pc2, reg_p2l.transformation)
+
+    # print(reg_p2p.transformation)
+    # print(reg_p2p.fitness)
+    # print(reg_p2p.inlier_rmse)
+    # print(reg_p2p.correspondence_set)
+
+    return reg_p2l.transformation, reg_p2l
+
+
+
+
 if __name__=='__main__':
 
     ### TODO add unit test
@@ -726,5 +961,50 @@ if __name__=='__main__':
         assert np.all(np.abs(
             np.dot(RotationMatrixFromQuaternion(qr), vv)
             -np.dot(RotationMatrixFromQuaternion(qs), vv))<epsilon)
+
+
+
+
+    '''
+    Calculate Transformation
+
+    '''
+    euler = np.array([0.5, 0.2, 0.3])
+    translation = np.array([ 7, 10, 20])
+    print('TRUE euler:', euler)
+    print('TRUE translation:', translation)
+
+    T = TransformationMatrixFromEulerAngleTranslation(euler, translation)
+
+    pa = np.random.randn(1000,3)*1.0
+    paa = np.c_[pa, np.ones(len(pa))]
+    pbb = np.dot(T, paa.T).T
+    pb = pbb[:,:3] + np.random.randn(1000,3)*0.01
+
+    b_scale = True
+    # b_scale = False
+    euler1, translation1, ds1, res, rank, sv  = bursa_wolf_transformation(pa, pb, b_scale)
+    print('Bursa-Wolf euler:', euler1)
+    print('Bursa-Wolf translation:', translation1)
+
+    ##T1 = TransformationMatrixFromEulerAngleTranslation(euler1, translation1)
+    ##pc = np.dot(T1,paa.T).T
+    ##plt.figure()
+    ##ax = plt.subplot(1,1,1, projection='3d')
+    ##ax.plot( pb[:,0], pb[:,1], pb[:,2], 'b.', label='true')
+    ##ax.plot( pc[:,0], pc[:,1], pc[:,2], 'r.', label='fitted')
+    ##ax.grid()
+
+    ##plt.show()
+
+    eu = np.array(euler)*0.6
+    tl = np.array(translation)*0.9
+    Ti = TransformationMatrixFromEulerAngleTranslation(eu,tl)
+    Tr, res = open3d_icp(pa, pb[:-10], Ti, 2.0)
+
+    euler2, translation2 = EulerAngleTranslationFromTransformationMatrix(Tr)
+
+    print('ICP(open3d) euler:', euler2)
+    print('ICP(open3d) translation:', translation2)
 
 

@@ -313,7 +313,7 @@ if __name__=='__main__':
             -5,5,0.1)
 
     for x in np.arange(-2,2,0.1):
-        g2d.add_point(x, np.sin(x))
+        g2d.set(x, np.sin(x))
 
 
     pp = g2d.to_points()

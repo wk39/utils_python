@@ -181,6 +181,42 @@ def QuaternionFromAxisAngle(v, theta):
     return q
 
 
+def QuaternionFromTwoVectors(v1, v2):
+    ''' 
+    CAUTION: Rotation from two vector cannot represent Full Rotation
+             ... it cannot detect rotation about own axis(vector)
+
+    parameter:
+
+        v1    [ array 3 ] - vector 1
+        v2    [ array 3 ] - vector 2
+
+    return:
+
+        q [ array 4 ] - quaternion in (w,x,y,z) order
+                      - rotation v1 -> v2
+
+    '''
+
+    u1 = v1/np.linalg.norm(v1)
+    u2 = v2/np.linalg.norm(v2)
+
+    # theta = np.arccos(np.dot(u1,u2))
+    v3 = np.cross(u1, u2)
+    n3 = np.linalg.norm(v3)
+    theta = np.arcsin(n3)
+    if theta < 1e-9:
+        u3 = np.array([1,0,0])
+        theta = 0.0
+    else:
+        u3 = v3/n3
+
+    # print(theta, np.arcsin(n3))
+
+    return QuaternionFromAxisAngle(u3, theta)
+
+
+
 def AxisAngleFromQuaternion(q):
     ''' 
     parameter:
@@ -961,6 +997,24 @@ if __name__=='__main__':
         assert np.all(np.abs(
             np.dot(RotationMatrixFromQuaternion(qr), vv)
             -np.dot(RotationMatrixFromQuaternion(qs), vv))<epsilon)
+
+
+    # Quaternion from two vectors
+    rpy = np.array([0.1,0.2,0.3])
+    R = RotationMatrixFromEulerAngles(*rpy)
+    v1 = np.array([2,0,0])
+    v2 = np.dot(R,v1)
+    q_ = QuaternionFromTwoVectors(v1,v2)
+    R_ = RotationMatrixFromQuaternion(q_)
+    # rpy_ = EulerAnglesFromRotationMatrix(R_)
+    v2_ = np.dot(RotationMatrixFromQuaternion(q_),v1)
+    # print(v2)
+    # print(v2_)
+    # print(R)
+    # print(R_)
+    # print(rpy)
+    # print(rpy_)
+    assert np.all(np.abs(v2 - v2_)<np.radians(0.1))
 
 
 

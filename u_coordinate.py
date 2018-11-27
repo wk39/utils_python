@@ -658,7 +658,14 @@ def param_form_string_from_transformation_matrix(T):
     s2 = ' -p %.6f %.6f %.6f' % (T[0,3], T[1,3], T[2,3])
     return s1 + s2
 
+def transformation_matrix_from_ssv_rotation_matrix_translation(ssv):
 
+    ss = ssv.split()
+
+    R = np.array( [ float(s) for s in ss[:9]]).reshape((3,3))
+    t = np.array( [ float(s) for s in ss[9:12]])
+
+    return TransformationMatrixFromRotationMatrixTranslation(R,t)
 
 
 

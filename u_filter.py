@@ -61,7 +61,7 @@ class KalmanFilter:
 
 
 
-def ransac_spline(x_data, y_data, n_order=3, n_knots=10, b_periodic=False, b_graph=True, random_seed=None, title='ransac'):
+def ransac_spline(x_data, y_data, n_order=3, n_knots=10, thres=0.2, b_periodic=False, b_graph=True, random_seed=None, title='ransac'):
 
     """
     Robust B-Spline regression with scikit-learn
@@ -140,7 +140,9 @@ def ransac_spline(x_data, y_data, n_order=3, n_knots=10, b_periodic=False, b_gra
     # X_test = X_test[:, np.newaxis]
 
     # predict y
-    knots = np.linspace(x_data[0], x_data[-1], n_knots) #np.linspace(-30, 30, 20)
+    # knots = np.linspace(x_data[0], x_data[-1], n_knots) #np.linspace(-30, 30, 20)
+    knots = np.linspace(x_data.min(), x_data.max(), n_knots) #np.linspace(-30, 30, 20)      # wook
+    print(knots)
     # bspline_features = BSplineFeatures(knots, degree=3, periodic=False)
     bspline_features = BSplineFeatures(knots, degree=n_order, periodic=b_periodic)
     ##estimators = [('Least-Square', 'g-', 'C0',
@@ -152,13 +154,13 @@ def ransac_spline(x_data, y_data, n_order=3, n_knots=10, b_periodic=False, b_gra
         estimators = [#('Least-Square', 'g-', 'C0', LinearRegression(fit_intercept=False)),
                       # ('RANSAC', 'r-', 'C2', RANSACRegressor(residual_threshold=10))
                       # ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=42))
-                      ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=random_seed))
+                      ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=random_seed, residual_threshold=thres))
                       ]
     else:
         estimators = [#('Least-Square', 'g-', 'C0', LinearRegression(fit_intercept=False)),
                       # ('RANSAC', 'r-', 'C2', RANSACRegressor(residual_threshold=10))
                       # ('RANSAC', 'r-', 'C2', RANSACRegressor(random_state=42))
-                      ('RANSAC', 'r-', 'C2', RANSACRegressor())
+                      ('RANSAC', 'r-', 'C2', RANSACRegressor(residual_threshold=thres))
                       ]
 
     # fig, ax = plt.subplots(1, 1, figsize=(8, 3))

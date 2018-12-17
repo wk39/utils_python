@@ -79,6 +79,7 @@ def points_to_ppr(p1, p2):
     return np.array(p1), np.array(p2)-np.array(p1)
 
 
+
 def intersect_line_segments(p1, p2, p3, p4):
     '''
     check two line segments have intersection or not
@@ -102,7 +103,7 @@ def intersect_line_segments(p1, p2, p3, p4):
     cqmpr = np.cross(q-p,r)
     # print('r x s     =', crs)
     # print('(q-p) x r =', cqmpr)
-    if crs==0.:
+    if crs==0.:                 # collinear or parallel
         t,u = 10.0, 10.0        # meaning less value
     else:
         t = np.cross(q-p,s)/crs
@@ -136,6 +137,68 @@ def intersect_line_segments(p1, p2, p3, p4):
 
     return False
 
+
+
+def intersection_point(p1, p2, p3, p4):
+    '''
+    get intersection point of two lines
+
+    [in]
+        p1 - start point of line1
+        p2 - end point of line1
+        p3 - start point of line2
+        p4 - end point of line2
+
+    [out]
+        p  - point or None
+
+
+    ref
+        https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    '''
+    
+    c12 = p1[0]*p2[1] - p2[0]*p1[1]
+    c34 = p3[0]*p4[1] - p4[0]*p3[1]
+
+    deno = (p1[0]-p2[0])*(p3[1]-p4[1]) - (p1[1]-p2[1])*(p3[0]-p4[0])
+
+    
+
+    if deno==0:
+        return None
+    else:
+        return np.array([
+            c12*(p3[0]-p4[0])-c34*(p1[0]-p2[0]),
+            c12*(p3[1]-p4[1])-c34*(p1[1]-p2[1])])/deno
+
+
+def intersection_tu(p1, p2, p3, p4):
+    '''
+    get intersection t, u of two lines
+
+    [in]
+        p1 - start point of line1
+        p2 - end point of line1
+        p3 - start point of line2
+        p4 - end point of line2
+
+    [out]
+        t  - parameter
+        u  - parameter
+
+
+    ref
+        https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    '''
+    
+    deno = (p1[0]-p2[0])*(p3[1]-p4[1]) - (p1[1]-p2[1])*(p3[0]-p4[0])
+
+    if deno==0:
+        return None, None
+    else:
+        return np.array([
+            (p1[0]-p3[0])*(p3[1]-p4[1])-(p1[1]-p3[1])*(p3[0]-p4[0]),
+           -(p1[0]-p2[0])*(p1[1]-p3[1])+(p1[1]-p2[1])*(p1[0]-p3[0])])/deno
 
 
 
@@ -225,6 +288,47 @@ if __name__ == '__main__':
         # print()
 
 
+
+    ''' intersection_point '''
+    p1 = [-1, 0]
+    p2 = [ 1, 0]
+    p3 = [ 0,-1]
+    p4 = [ 0, 1]
+    pc = [ 0, 0]
+    assert np.allclose(pc, intersection_point(p1,p2,p3,p4))
+
+    p1 = [-1, 1]
+    p2 = [ 1, 1]
+    p3 = [ 0,-2]
+    p4 = [ 0, 2]
+    pc = [ 0, 1]
+    assert np.allclose(pc, intersection_point(p1,p2,p3,p4))
+
+    dx=2.5; dy=1.2;
+    pc = [ 1, 1]
+    p1 = [pc[0]-dx,pc[1]-dy]
+    p2 = [pc[0]+dx,pc[1]+dy]
+    p3 = [pc[0]-dx,pc[1]+dy]
+    p4 = [pc[0]+dx,pc[1]-dy]
+    try:
+        assert np.allclose(pc, intersection_point(p1,p2,p3,p4))
+    except Exception as e:
+        print('pc', pc)
+        print('intersection point', intersection_point(p1,p2,p3,p4))
+        raise(e)
+
+    dx=2.5; dy=1.2;
+    pc = [ 1, 1]
+    p1 = [pc[0]-dx,pc[1]-dy]
+    p2 = [pc[0]+dx,pc[1]+dy]
+    p3 = [pc[0]-dx,pc[1]-dy]
+    p4 = [pc[0]+dx,pc[1]+dy]
+    try:
+        assert intersection_point(p1,p2,p3,p4) is None
+    except Exception as e:
+        print('pc', pc)
+        print('intersection point', intersection_point(p1,p2,p3,p4))
+        raise(e)
 
 
 

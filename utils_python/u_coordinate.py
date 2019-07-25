@@ -667,6 +667,15 @@ def transformation_matrix_from_ssv_rotation_matrix_translation(ssv):
 
     return TransformationMatrixFromRotationMatrixTranslation(R,t)
 
+def transformation_matrix_from_param_form_string(param_str):
+
+    ss = param_str.split()
+
+    euler = [float(s) for s in ss[1:1+3]]
+    tsl = [float(s) for s in ss[5:5+3]]
+
+    return TransformationMatrixFromEulerAngleTranslation(euler,tsl)
+
 
 
 
@@ -1004,6 +1013,18 @@ if __name__=='__main__':
         assert np.all(np.abs(
             np.dot(RotationMatrixFromQuaternion(qr), vv)
             -np.dot(RotationMatrixFromQuaternion(qs), vv))<epsilon)
+
+    # 
+    r1 = RotationMatrixFromEulerAngles(0,0,np.radians(30))
+    r2 = RotationMatrixFromEulerAngles(0,0,np.radians(90))
+    r3 = RotationMatrixFromEulerAngles(0,0,np.radians(60))
+    q1 = QuaternionFromRotationMatrix(r1)
+    q2 = QuaternionFromRotationMatrix(r2)
+    #
+    q = SphericalLinearInterpolation(q1, q2, 0.5)
+    print(q)
+    print(QuaternionFromRotationMatrix(r3))
+
 
 
     # Quaternion from two vectors

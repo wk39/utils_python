@@ -658,6 +658,12 @@ def param_form_string_from_transformation_matrix(T):
     s2 = ' -p %.6f %.6f %.6f' % (T[0,3], T[1,3], T[2,3])
     return s1 + s2
 
+def param_form_string_ndt_from_transformation_matrix(T):
+    eu = EulerAnglesFromRotationMatrix(T[:3,:3])
+    s1 = ' -ab %.6f,%.6f,%.6f' % (eu[0], eu[1], eu[2])
+    s2 = ' -pb %.6f,%.6f,%.6f' % (T[0,3], T[1,3], T[2,3])
+    return s1 + s2
+
 def transformation_matrix_from_ssv_rotation_matrix_translation(ssv):
 
     ss = ssv.split()

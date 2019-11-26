@@ -4,7 +4,7 @@ import numpy as np
 class KalmanFilter:
     ''' Kalman Filter (linear, no control input) '''
 
-    def __init__(self, A, H, Q, R):
+    def __init__(self, A, H, Q, R, xp0=None, Pp0=None):
 
         self.A  = np.array(A)
         self.H  = np.array(H)
@@ -12,15 +12,15 @@ class KalmanFilter:
         self.R  = np.array(R)
         #
         n = self.A.shape[0]
+        if xp0 is None:
+            xp0 = np.zeros(n)
+        if Pp0 is None:
+            Pp0 = np.eye(n)
         #
         self.xm = np.zeros(n)
-        self.xp = np.zeros(n)
         self.Pm = np.eye(n)
-        self.Pp = np.eye(n)
-        #
-        self.K  = None
-        self.y  = None
-        self.S  = None
+        self.xp = xp0
+        self.Pp = Pp0
 
         return
 
@@ -42,20 +42,102 @@ class KalmanFilter:
     def update(self, z, R=None):
 
         # y = z - H * xm (innovation)
-        self.y  = z - np.dot(self.H, self.xm)
+        y  = z - np.dot(self.H, self.xm)
         # S = R + H * Pm * H' (innovation Covariance)
         if R:
-            self.S  =      R + np.dot(np.dot(self.H, self.Pm), self.H.T)
+            S  =      R + np.dot(np.dot(self.H, self.Pm), self.H.T)
         else:
-            self.S  = self.R + np.dot(np.dot(self.H, self.Pm), self.H.T)
+            S  = self.R + np.dot(np.dot(self.H, self.Pm), self.H.T)
 
         # K = Pm * H' * inv(S)
-        self.K  = np.dot(np.dot(self.Pm, self.H.T), np.linalg.inv(self.S))
+        K  = np.dot(np.dot(self.Pm, self.H.T), np.linalg.inv(S))
 
         # xp = xm + K * y
-        self.xp = self.xm + np.dot(self.K, self.y)
-        # Pp = Pm - K * S * K'
-        self.Pp = self.Pm - np.dot(np.dot(self.K, self.S), self.K.T)
+        self.xp = self.xm + np.dot(K, y)
+        # Pp = (I-KH)Pm(I-KH)' + KRK'
+        IKH = np.eye(len(self.xp)) - np.dot(K, self.H)
+        self.Pp = np.dot(np.dot(IKH, self.Pm),IKH.T) + np.dot(np.dot(K, self.R),K.T)
+
+        return
+
+
+
+class ExtendedKalmanFilter:
+    '''
+    Extended Kalman Filter (no control input)
+
+    ref:
+        The discrete-time extended Kalman filter - Dan Simon "Optimal State Estimation", p409
+
+        1. system and measurement equation
+
+        x_k = f_k-1 (x_k-1, u_k-1, w_k-1)
+        y_k = h_k (x_k, v_k)
+        wk ~ (0, Qk)
+        vk ~ (0, Rk)
+
+        2. initialization
+
+        xhat_0+ = E(x_0)
+        P_0+ = E[(x_0-xhat_0+) (x_0-xhat_0+).T]
+
+
+        3. for k=1,2,3...
+            
+            a) compute partial derivatives
+
+                F_k-1 = a(f_k-1)/ax |xhat_k-1
+                L_k-1 = a(f_k-1)/aw |xhat_k-1
+
+            b) predict
+
+            c) compute partial derivatives
+
+                H_k = a(h_k)/ax |xhat_k
+                L_k = a(f_k)/av |xhat_k
+
+            d) update
+
+    '''
+
+    def __init__(self, xp0, Pp0):
+
+        self.F = None
+        #
+        n = len(xp0)
+        assert len(Pp0)==n
+        #
+        self.xm = np.zeros(n)
+        self.Pm = np.eye(n)
+        self.xp = xp0
+        self.Pp = Pp0
+        #
+        K  = None
+        # self.S  = None
+
+        return
+
+    def predict(self, F, L, Q, xm):
+
+        self.Pm = np.dot(np.dot(F, self.Pp), F.T) + np.dot(np.dot(L, Q), L.T)
+        self.xm = xm
+
+        return
+
+    def update(self, H, M, R, z):
+
+        y  = z - np.dot(H, self.xm)
+        # innovation Covariance
+        MRM = np.dot(np.dot(M, R), M.T)
+        S  = np.dot(np.dot(H, self.Pm), H.T) + MRM
+        # K = Pm * H' * inv(S)
+        K  = np.dot(np.dot(self.Pm, H.T), np.linalg.inv(S))
+
+        # xp = xm + K * y
+        self.xp = self.xm + np.dot(K, y)
+        # Pp = (I-KH)Pm(I-KH)' + KRK'
+        IKH = np.eye(len(self.xp)) - np.dot(K, H)
+        self.Pp = np.dot(np.dot(IKH, self.Pm),IKH.T) + np.dot(np.dot(K, MRM),K.T)
 
         return
 
@@ -206,6 +288,33 @@ def moving_average(data, w):
             d[i] = np.mean(data[i-dw:i+(2*dw+1)])
 
     return d
+
+
+def moving_average2(data, w):
+
+    dw = w//2
+    w = dw*2+1
+    
+    d = np.zeros_like(data[dw*2:])
+    n = len(data)
+    
+    for i, j in zip(range(w), range(w,-1,-1)):
+        # w=3 dw=1 n=10   #overlap=10-2=8
+        # i   j
+        # 0   3     d[0:10-3+1] #8
+        # 1   2     d[1:10-2+1] #8
+        # 2   1     d[2:10-1+1] #8
+        d+= data[i:n-j+1]
+        
+    d = d/w
+
+    d0 = np.repeat(d[0],dw)
+    d1 = np.repeat(d[-1],dw)
+        
+    if len(d.shape)==1:
+        return np.r_[d0, d, d1]
+    else:
+        return np.vstack((d0, d, d1))
 
 
 def low_pass_filter(data, gain):

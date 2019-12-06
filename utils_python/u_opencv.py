@@ -131,6 +131,27 @@ def uv1_to_xy01(Kmi,uv1):  # convert_image_to_world_in_ground_point
     pp = np.matmul(K,uv1)
     return (pp/pp[3]).astype(np.float32)
 
+
+
+def resize(src, size):
+    W, H = size
+    h, w, _ = src.shape
+    src = cv2.resize(src, (0, 0), fx=W/w, fy=H/h)
+    return src
+
+def overlay(src, overlay, x, y, scale=1):
+
+    overlay = cv2.resize(overlay, (0, 0), fx=scale, fy=scale)
+    h, w, _ = overlay.shape  # Size of foreground
+    rows, cols, _ = src.shape  # Size of background Image
+    assert overlay.shape[-1] == src.shape[-1], 'color depth must be equal; overlay {} != src {}'.format(overlay.shape[-1], src.shape[-1])
+ 
+    # loop over all pixels and apply the blending equation
+    src[y:y+h, x:x+w, :] = overlay
+    return src
+
+
+
 colors = {
         'pink'                :	(203, 192, 255),
         'lightpink'           :	(193, 182, 255),

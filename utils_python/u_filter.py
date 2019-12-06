@@ -32,7 +32,7 @@ class KalmanFilter:
         # xm = A * xp + B * u
         self.xm = np.dot(self.A, self.xp) + Bu
         # Pm = F * Pp * F' + Q
-        if Q:
+        if Q is not None:
             self.Pm = np.dot(np.dot(self.A, self.Pp), self.A.T) + Q
         else:
             self.Pm = np.dot(np.dot(self.A, self.Pp), self.A.T) + self.Q
@@ -44,7 +44,7 @@ class KalmanFilter:
         # y = z - H * xm (innovation)
         y  = z - np.dot(self.H, self.xm)
         # S = R + H * Pm * H' (innovation Covariance)
-        if R:
+        if R is not None:
             S  =      R + np.dot(np.dot(self.H, self.Pm), self.H.T)
         else:
             S  = self.R + np.dot(np.dot(self.H, self.Pm), self.H.T)
